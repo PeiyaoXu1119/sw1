@@ -15,11 +15,11 @@ use_dynamic_margin = true   # Use historical margin rates from data
 
 [strategy]
 # Strategy selection
-strategy_type = "baseline"  # Options: "baseline", "basis_timing"
-strategy_name = "Baseline Roll Strategy"
+# strategy_type = "baseline"  # Options: "baseline", "basis_timing"
+# strategy_name = "Baseline Roll Strategy"
 
-# strategy_type = "basis_timing"
-# strategy_name = "Basis Timing Strategy"
+strategy_type = "basis_timing"
+strategy_name = "Basis Timing Strategy"
 
 # Roll parameters
 roll_days_before_expiry = 2
@@ -27,7 +27,7 @@ contract_selection = "nearby"  # Options: "nearby", "volume", "oi"
 min_roll_days = 5
 target_leverage = 1.0
 
-# Basis timing parameters (only used when # strategy_type = "basis_timing")
+# Basis timing parameters (only used when strategy_type = "basis_timing")
 basis_entry_threshold = -0.02   # Enter when basis < -2%
 basis_exit_threshold = 0.005    # Exit when basis > +0.5%
 lookback_window = 60

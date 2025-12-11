@@ -3,13 +3,17 @@ Account class - manages cash, positions, and NAV.
 """
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 import pandas as pd
 from loguru import logger
 
 from ..domain.contract import FuturesContract
 from ..data.snapshot import MarketSnapshot
+from ..data.signal_snapshot import SignalSnapshot
 from .position import Position
+
+# Type alias for snapshots that can be used for execution
+ExecutionSnapshot = Union[MarketSnapshot, SignalSnapshot]
 
 
 @dataclass
@@ -23,6 +27,7 @@ class TradeRecord:
     amount: float  # volume * price * multiplier
     commission: float = 0.0
     reason: str = ""  # e.g., 'ROLL', 'REBALANCE', 'OPEN'
+    realized_pnl: float = 0.0  # PnL realized from this trade (for closing trades)
 
 
 class Account:
@@ -131,7 +136,7 @@ class Account:
     def rebalance_to_target(
         self,
         target_positions: Dict[str, int],
-        snapshot: MarketSnapshot,
+        snapshot: ExecutionSnapshot,
         contracts: Dict[str, FuturesContract],
         reason: str = "REBALANCE"
     ) -> float:
@@ -140,7 +145,7 @@ class Account:
         
         Args:
             target_positions: Dict[ts_code, target_volume]
-            snapshot: Current market snapshot
+            snapshot: SignalSnapshot (for open execution) or MarketSnapshot
             contracts: Dict of FuturesContract objects
             reason: Trade reason for logging
             
@@ -195,22 +200,11 @@ class Account:
         amount = abs(volume * price * contract.multiplier)
         commission = amount * self.commission_rate
         
-        # Record trade
-        direction = "BUY" if volume > 0 else "SELL"
-        trade = TradeRecord(
-            trade_date=trade_date,
-            ts_code=ts_code,
-            direction=direction,
-            volume=abs(volume),
-            price=price,
-            amount=amount,
-            commission=commission,
-            reason=reason,
-        )
-        self._trade_log.append(trade)
-        
-        # Deduct commission
+        # Deduct commission first
         self.cash -= commission
+        
+        # Calculate realized PnL (for closing trades)
+        realized_pnl = 0.0
         
         # Update or create position
         if ts_code in self._positions:
@@ -222,7 +216,7 @@ class Account:
             if position.volume == 0:
                 del self._positions[ts_code]
         else:
-            # New position
+            # New position - no realized PnL
             position = Position(
                 contract=contract,
                 volume=volume,
@@ -231,12 +225,27 @@ class Account:
             )
             self._positions[ts_code] = position
         
+        # Record trade with PnL
+        direction = "BUY" if volume > 0 else "SELL"
+        trade = TradeRecord(
+            trade_date=trade_date,
+            ts_code=ts_code,
+            direction=direction,
+            volume=abs(volume),
+            price=price,
+            amount=amount,
+            commission=commission,
+            reason=reason,
+            realized_pnl=realized_pnl,
+        )
+        self._trade_log.append(trade)
+        
         return commission
     
     def _close_position(
         self,
         ts_code: str,
-        snapshot: MarketSnapshot,
+        snapshot: ExecutionSnapshot,
         reason: str
     ) -> float:
         """
@@ -286,6 +295,7 @@ class Account:
                 "price": t.price,
                 "amount": t.amount,
                 "commission": t.commission,
+                "realized_pnl": t.realized_pnl,
                 "reason": t.reason,
             }
             for t in self._trade_log

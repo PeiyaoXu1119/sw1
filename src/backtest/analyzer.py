@@ -396,6 +396,7 @@ class Analyzer:
                 "price": t.price,
                 "amount": t.amount,
                 "commission": t.commission,
+                "realized_pnl": t.realized_pnl,
                 "reason": t.reason,
             }
             for t in self.trade_log

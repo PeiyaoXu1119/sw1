@@ -73,7 +73,7 @@ package "domain" {
 }
 
 package "data" {
-    class MarketSnapshot {
+    class MarketSnapshot #LightGray {
         +trade_date: date
         +index_bar: IndexDailyBar
         +futures_quotes: Dict[str, FuturesDailyBar]
@@ -83,24 +83,67 @@ package "data" {
         +get_index_close(): float
         +get_basis(ts_code, relative): float
     }
+    note right of MarketSnapshot
+        Full snapshot for:
+        - Mark-to-market (settle)
+        - NAV calculation
+    end note
+
+    class SignalSnapshot #LightGreen {
+        +trade_date: date
+        +index_bar: RestrictedIndexBar
+        +futures_bars: Dict[str, RestrictedFuturesBar]
+        --
+        +get_futures_price(ts_code, field): float
+        +get_index_price(field): float
+        +get_basis(ts_code): float
+        +get_prev_volume(ts_code): float
+    }
+    note right of SignalSnapshot
+        **RESTRICTED** snapshot for strategy:
+        - Only open, pre_settle
+        - Only index open
+        - T-1 day complete data
+        **FORBIDDEN**: close, settle, volume
+    end note
+
+    class RestrictedFuturesBar <<dataclass>> {
+        +trade_date: date
+        +ts_code: str
+        +open: float
+        +pre_settle: float
+        +prev_close: float
+        +prev_volume: float
+    }
+
+    class RestrictedIndexBar <<dataclass>> {
+        +trade_date: date
+        +open: float
+        +prev_close: float
+    }
 
     class DataHandler {
         +index: EquityIndex
         +contract_chain: ContractChain
         +calendar: List[date]
         -_snapshot_cache: Dict[date, MarketSnapshot]
+        -_signal_snapshot_cache: Dict[date, SignalSnapshot]
         --
         +from_processed_data(path, fut_code): DataHandler
         +get_trading_calendar(start, end): List[date]
         +get_snapshot(date): MarketSnapshot
+        +get_signal_snapshot(date): SignalSnapshot
         +get_margin_rate(date): float
     }
 
     DataHandler --> ContractChain
     DataHandler --> EquityIndex
     DataHandler ..> MarketSnapshot : creates
+    DataHandler ..> SignalSnapshot : creates
     MarketSnapshot --> IndexDailyBar
     MarketSnapshot --> FuturesDailyBar
+    SignalSnapshot --> RestrictedIndexBar
+    SignalSnapshot --> RestrictedFuturesBar
 }
 
 package "account" {
@@ -123,6 +166,7 @@ package "account" {
         +price: float
         +amount: float
         +commission: float
+        +realized_pnl: float
         +reason: str
     }
 
@@ -130,6 +174,7 @@ package "account" {
         +initial_capital: float
         +margin_rate: float
         +commission_rate: float
+        +execution_price_field: str
         +cash: float
         +realized_pnl: float
         -_positions: Dict[str, Position]
@@ -138,8 +183,8 @@ package "account" {
         --
         +equity: float
         +nav: float
-        +mark_to_market(snapshot): float
-        +rebalance_to_target(targets, snapshot, contracts): float
+        +mark_to_market(full_snapshot): float
+        +rebalance_to_target(targets, signal_snapshot, contracts): float
         +get_nav_series(): Series
     }
 
@@ -151,9 +196,14 @@ package "account" {
 package "strategy" {
     abstract class Strategy {
         +contract_chain: ContractChain
+        +signal_price_field: str
         --
-        {abstract} +on_bar(snapshot, account): Dict[str, int]
+        {abstract} +on_bar(signal_snapshot, account): Dict[str, int]
     }
+    note right of Strategy
+        on_bar receives **SignalSnapshot**
+        (not MarketSnapshot)
+    end note
 
     class BaselineRollStrategy extends Strategy {
         +roll_days_before_expiry: int

@@ -1,74 +1,65 @@
 @startuml backtest_timeline
 skinparam linetype ortho
 
-title Backtest Day Timeline - Preventing Lookahead Bias
+title Backtest Day Timeline - Correct Event Sequence
 
 |#LightBlue| Market Time |
-|#LightGreen| Backtest Engine |
-|#LightYellow| Strategy |
-|#Pink| Data Access |
+|#LightGreen| Backtest Engine (Open Phase) |
+|#LightGray| Backtest Engine (Close Phase) |
 
 |Market Time|
 :T Day 09:30 - Open;
 
-|Backtest Engine|
-:get_full_snapshot(T);
+|Backtest Engine (Open Phase)|
+#LightGreen:get_signal_snapshot(T);
 note right
-  Full snapshot for:
-  - Mark-to-market
-  - Trade execution
-end note
-
-:get_signal_snapshot(T);
-note right
-  **RESTRICTED** snapshot for strategy
+  **RESTRICTED SignalSnapshot**
   Contains ONLY:
   - T-day open, pre_settle
   - T-day index open
   - T-1 day complete data
   
   **FORBIDDEN**:
-  - T-day close, settle
-  - T-day volume, oi
+  - T-day close, settle, volume, oi
   - T-day index close
 end note
 
-|Strategy|
-:on_bar(signal_snapshot, account);
+#LightGreen:strategy.on_bar(signal_snapshot, account);
 note right
-  Strategy can ONLY access
-  SignalSnapshot methods:
-  - get_futures_price('open')
-  - get_futures_price('pre_settle')
-  - get_index_price('open')
-  - get_basis() [uses open prices]
+  Strategy generates targets
+  using ONLY restricted data
 end note
 
-:return target_positions;
-
-|Backtest Engine|
-:mark_to_market(full_snapshot);
+#LightGreen:account.rebalance_to_target(targets, signal_snapshot);
 note right
-  Uses settle price
-  for daily settlement
-  (correct behavior)
-end note
-
-:rebalance_to_target(target_positions, full_snapshot);
-note right
-  Execute trades at
-  configured execution_price_field
-  (default: open)
+  Execute trades @ open price
+  Record trades with realized_pnl
 end note
 
 |Market Time|
 :T Day 15:00 - Close;
-
-|Market Time|
 :Settle price announced;
 
-|Backtest Engine|
-:record_nav(T);
+|Backtest Engine (Close Phase)|
+#LightGray:get_full_snapshot(T);
+note right
+  **Full MarketSnapshot**
+  All fields now available
+  including settle
+end note
+
+#LightGray:account.mark_to_market(full_snapshot);
+note right
+  Daily Settlement:
+  PnL = (settle(T) - settle(T-1)) * volume
+  cash += daily_pnl
+end note
+
+#LightGray:account.record_nav(T);
+note right
+  NAV = equity / initial_capital
+  (valued at settle price)
+end note
 
 |Market Time|
 :T+1 Day;

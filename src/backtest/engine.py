@@ -141,42 +141,54 @@ class BacktestEngine:
     
     def _process_day(self, trade_date: date, contracts: dict) -> None:
         """
-        Process a single trading day.
+        Process a single trading day with correct timeline.
         
-        Timeline:
-        1. Get full snapshot (for settlement and execution)
-        2. Get signal snapshot (RESTRICTED - for strategy)
-        3. Mark-to-market using settle price
-        4. Strategy generates signal using ONLY signal snapshot
-        5. Execute trades at execution price
-        6. Record NAV
+        ============ TIMELINE ============
+        
+        T Day 09:30 Open:
+        ├─ Get SignalSnapshot (Only open, pre_settle, T-1 data)
+        ├─ Strategy generates signal (CANNOT see T-day close/settle/volume)
+        └─ Execute trades @ open price
+        
+        T Day 15:00 Close:
+        ├─ Settlement price published
+        ├─ Mark-to-market: PnL = (settle(T) - settle(T-1)) * volume
+        └─ Record NAV (valued at settle)
+        
+        ==================================
         """
-        # Get full snapshot (for mark-to-market and execution)
-        full_snapshot = self.data_handler.get_snapshot(trade_date)
-        if full_snapshot is None:
-            return
+        # ============ Open (09:30) ============
         
-        # Get RESTRICTED signal snapshot (prevents lookahead bias)
+        # Get RESTRICTED signal snapshot - strategy can ONLY see this
         signal_snapshot = self.data_handler.get_signal_snapshot(trade_date)
         if signal_snapshot is None:
             return
         
-        # Mark-to-market existing positions (uses settle price - correct)
-        self.account.mark_to_market(full_snapshot)
-        
-        # Get target positions from strategy using RESTRICTED snapshot
-        # Strategy CANNOT see today's close, settle, volume, etc.
+        # Strategy generates signal using ONLY SignalSnapshot
+        # CANNOT access T-day close, settle, volume, oi, index close
         target_positions = self.strategy.on_bar(signal_snapshot, self.account)
         
-        # Execute trades using full snapshot (at configured execution price)
+        # Execute trades at open price
+        # Note: We need execution prices from signal_snapshot (open/pre_settle)
         self.account.rebalance_to_target(
             target_positions,
-            full_snapshot,
+            signal_snapshot,  # Use SignalSnapshot for execution too (SOLID principle)
             contracts,
             reason="STRATEGY"
         )
         
-        # Record NAV
+        # ============ Close (15:00 后) ============
+        
+        # Get full snapshot for settlement (now settle is known)
+        full_snapshot = self.data_handler.get_snapshot(trade_date)
+        if full_snapshot is None:
+            return
+        
+        # Mark-to-market: settle today's PnL using T-day settle price
+        # PnL = (settle(T) - settle(T-1)) * volume * multiplier
+        self.account.mark_to_market(full_snapshot)
+        
+        # Record NAV (valued at settle price)
         self.account.record_nav(trade_date)
     
     def _print_summary(self, metrics: Dict[str, float]) -> None:

@@ -1,21 +1,21 @@
 @startuml sequence_backtest
 skinparam linetype ortho
-
 skinparam sequenceMessageAlign center
 
-title Backtest Engine - Main Loop Sequence Diagram
+title Backtest Engine - Main Loop Sequence Diagram\n(Correct Timeline: Open -> Trade -> Settle)
 
 participant "main.py" as Main
 participant "BacktestEngine" as Engine
 participant "DataHandler" as DataHandler
 participant "Strategy" as Strategy
 participant "Account" as Account
-participant "MarketSnapshot" as Snapshot
+participant "SignalSnapshot" as SigSnap #LightGreen
+participant "MarketSnapshot" as FullSnap #LightGray
 
 == Initialization ==
 Main -> Engine: create(data_handler, strategy, config)
 activate Engine
-Engine -> Account: create(initial_capital, margin_rate)
+Engine -> Account: create(initial_capital, margin_rate, execution_price_field)
 activate Account
 
 == Backtest Loop (for each trading day) ==
@@ -24,41 +24,64 @@ Main -> Engine: run(start_date, end_date)
 loop for each trade_date in calendar
     Engine -> Engine: _process_day(trade_date)
     
-    group Get Market Data
-        Engine -> DataHandler: get_snapshot(trade_date)
+    note over Engine
+        ============ T Day 09:30 OPEN ============
+    end note
+    
+    group #LightGreen Get RESTRICTED Signal Snapshot
+        Engine -> DataHandler: get_signal_snapshot(trade_date)
         activate DataHandler
-        DataHandler -> Snapshot: create(trade_date, index_bar, futures_quotes)
-        DataHandler --> Engine: snapshot
+        DataHandler -> SigSnap: create(open, pre_settle, T-1 data)
+        note right of SigSnap
+            FORBIDDEN:
+            - T-day close/settle
+            - T-day volume/oi
+            - T-day index close
+        end note
+        DataHandler --> Engine: signal_snapshot
         deactivate DataHandler
     end
     
-    group Mark-to-Market
-        Engine -> Account: mark_to_market(snapshot)
-        Account -> Account: update positions PnL
-        Account -> Account: settle daily PnL to cash
-        Account --> Engine: daily_pnl
-    end
-    
-    group Strategy Signal
-        Engine -> Strategy: on_bar(snapshot, account)
+    group #LightGreen Strategy Signal (uses RESTRICTED data only)
+        Engine -> Strategy: on_bar(signal_snapshot, account)
         activate Strategy
-        Strategy -> Strategy: calculate basis / check roll
-        Strategy -> Strategy: determine target positions
-        Strategy --> Engine: target_positions: Dict[ts_code, volume]
+        Strategy -> SigSnap: get_futures_price('open')
+        Strategy -> SigSnap: get_basis() [uses open prices]
+        Strategy -> Strategy: calculate targets
+        Strategy --> Engine: target_positions
         deactivate Strategy
     end
     
-    group Execute Trades
-        Engine -> Account: rebalance_to_target(target_positions, snapshot)
-        Account -> Account: close unwanted positions
-        Account -> Account: open/adjust positions
-        Account -> Account: record trades
+    group #LightGreen Execute Trades @ Open Price
+        Engine -> Account: rebalance_to_target(targets, signal_snapshot)
+        Account -> SigSnap: get_futures_price('open')
+        Account -> Account: execute trades, record with PnL
         Account --> Engine: total_commission
     end
     
-    group Record NAV
+    note over Engine
+        ============ T Day 15:00 CLOSE ============
+        (settle price now known)
+    end note
+    
+    group #LightGray Get Full Snapshot for Settlement
+        Engine -> DataHandler: get_snapshot(trade_date)
+        activate DataHandler
+        DataHandler -> FullSnap: create(all fields including settle)
+        DataHandler --> Engine: full_snapshot
+        deactivate DataHandler
+    end
+    
+    group #LightGray Mark-to-Market (Daily Settlement)
+        Engine -> Account: mark_to_market(full_snapshot)
+        Account -> Account: PnL = (settle(T) - settle(T-1)) * volume
+        Account -> Account: cash += daily_pnl
+        Account --> Engine: daily_pnl
+    end
+    
+    group #LightGray Record NAV
         Engine -> Account: record_nav(trade_date)
-        Account -> Account: nav_history[date] = nav
+        Account -> Account: nav_history[date] = equity / initial_capital
     end
 end
 
