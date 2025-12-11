@@ -15,14 +15,14 @@ use_dynamic_margin = true   # Use historical margin rates from data
 
 [strategy]
 # Strategy selection
-# strategy_type = "baseline"  # Options: "baseline", "basis_timing"
+# strategy_type = "baseline"  # Options: "baseline", "basis_timing", "smart_roll"
 # strategy_name = "Baseline Roll Strategy"
 
-strategy_type = "basis_timing"
-strategy_name = "Basis Timing Strategy"
+strategy_type = "smart_roll"
+strategy_name = "Smart Roll Strategy (Volume)"
 
 # Roll parameters
-roll_days_before_expiry = 2
+roll_days_before_expiry = 1  # Safety net for smart roll
 contract_selection = "nearby"  # Options: "nearby", "volume", "oi"
 min_roll_days = 5
 target_leverage = 1.0

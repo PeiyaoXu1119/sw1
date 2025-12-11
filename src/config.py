@@ -56,6 +56,7 @@ class StrategyConfig:
     contract_selection: str = "nearby"  # nearby, volume, oi
     min_roll_days: int = 5
     target_leverage: float = 1.0
+    roll_criteria: str = "volume"  # volume, oi (for smart_roll strategy)
     
     # Basis timing parameters (only for basis_timing strategy)
     basis_entry_threshold: float = -0.02  # -2%
