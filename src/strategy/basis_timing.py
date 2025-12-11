@@ -30,6 +30,7 @@ class BasisTimingStrategy(BaselineRollStrategy):
         contract_selection: str = 'nearby',
         target_leverage: float = 1.0,
         min_roll_days: int = 5,
+        signal_price_field: str = "open",  # Price field for signal calculation
         # Basis timing parameters
         basis_entry_threshold: float = -0.02,   # -2% discount to enter
         basis_exit_threshold: float = 0.005,    # +0.5% to exit
@@ -45,6 +46,7 @@ class BasisTimingStrategy(BaselineRollStrategy):
             contract_selection,
             target_leverage,
             min_roll_days,
+            signal_price_field,
         )
         
         self.basis_entry_threshold = basis_entry_threshold
@@ -83,8 +85,8 @@ class BasisTimingStrategy(BaselineRollStrategy):
         
         base_volume = base_targets.get(ts_code, 0)
         
-        # Calculate current basis
-        basis = snapshot.get_basis(ts_code, relative=True)
+        # Calculate current basis using signal price field
+        basis = snapshot.get_basis(ts_code, relative=True, price_field=self.signal_price_field)
         if basis is None:
             # No basis info, use base strategy
             return base_targets

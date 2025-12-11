@@ -43,6 +43,7 @@ def run_backtest_from_config(config: Config):
             contract_selection=cfg.strategy.contract_selection,
             target_leverage=cfg.strategy.target_leverage,
             min_roll_days=cfg.strategy.min_roll_days,
+            signal_price_field=cfg.backtest.signal_price_field,
         )
     elif cfg.strategy.strategy_type == "basis_timing":
         strategy = BasisTimingStrategy(
@@ -51,6 +52,7 @@ def run_backtest_from_config(config: Config):
             contract_selection=cfg.strategy.contract_selection,
             target_leverage=cfg.strategy.target_leverage,
             min_roll_days=cfg.strategy.min_roll_days,
+            signal_price_field=cfg.backtest.signal_price_field,
             basis_entry_threshold=cfg.strategy.basis_entry_threshold,
             basis_exit_threshold=cfg.strategy.basis_exit_threshold,
             lookback_window=cfg.strategy.lookback_window,
@@ -77,6 +79,8 @@ def run_backtest_from_config(config: Config):
         benchmark_name=cfg.backtest.benchmark_name,
         risk_free_rate=cfg.backtest.risk_free_rate,
         trading_days_per_year=cfg.backtest.trading_days_per_year,
+        signal_price_field=cfg.backtest.signal_price_field,
+        execution_price_field=cfg.backtest.execution_price_field,
     )
     
     # Parse dates

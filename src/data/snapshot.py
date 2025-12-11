@@ -45,16 +45,22 @@ class MarketSnapshot:
         """Get spot index closing price."""
         return self.index_bar.close
     
-    def get_basis(self, ts_code: str, relative: bool = True) -> Optional[float]:
+    def get_basis(
+        self,
+        ts_code: str,
+        relative: bool = True,
+        price_field: str = "open"
+    ) -> Optional[float]:
         """
         Calculate basis for a specific contract.
         Args:
             ts_code: Contract code
             relative: If True, return (F - S) / S; else return F - S
+            price_field: Price field to use (open, close, settle, pre_settle)
         Returns: Basis value or None if contract not found or price invalid.
         """
-        # Try settle price first, then close as fallback
-        futures_price = self.get_futures_price(ts_code, 'settle')
+        # Use specified price field, fallback to close if not available
+        futures_price = self.get_futures_price(ts_code, price_field)
         if futures_price is None or futures_price <= 0:
             futures_price = self.get_futures_price(ts_code, 'close')
         

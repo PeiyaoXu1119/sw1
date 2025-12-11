@@ -44,6 +44,12 @@ benchmark_name = "CSI 500 Index"
 risk_free_rate = 0.02  # Annual risk-free rate
 trading_days_per_year = 242  # China market
 
+# Price field settings (avoid lookahead bias)
+# signal_price_field: Price used for signal calculation (open, pre_settle, close)
+# execution_price_field: Price used for trade execution (open, close)
+signal_price_field = "open"      # Use open price for signal (known at execution time)
+execution_price_field = "open"   # Execute at open price (T+0 open execution)
+
 [output]
 # Output settings
 output_path = "./output"

@@ -17,12 +17,18 @@ class Strategy(ABC):
     and outputs target positions (contract -> volume).
     """
     
-    def __init__(self, contract_chain: ContractChain):
+    def __init__(
+        self,
+        contract_chain: ContractChain,
+        signal_price_field: str = "open",
+    ):
         """
         Args:
             contract_chain: The contract chain to trade
+            signal_price_field: Price field for signal calculation (open, pre_settle, close)
         """
         self.contract_chain = contract_chain
+        self.signal_price_field = signal_price_field
     
     @abstractmethod
     def on_bar(

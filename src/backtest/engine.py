@@ -47,6 +47,8 @@ class BacktestEngine:
         benchmark_name: str = "Benchmark",
         risk_free_rate: float = 0.02,
         trading_days_per_year: int = TRADING_DAYS_PER_YEAR,
+        signal_price_field: str = "open",
+        execution_price_field: str = "open",
     ):
         self.data_handler = data_handler
         self.strategy = strategy
@@ -57,6 +59,8 @@ class BacktestEngine:
         self.benchmark_name = benchmark_name
         self.risk_free_rate = risk_free_rate
         self.trading_days_per_year = trading_days_per_year
+        self.signal_price_field = signal_price_field
+        self.execution_price_field = execution_price_field
         
         self.account: Optional[Account] = None
         self.analyzer: Optional[Analyzer] = None
@@ -83,6 +87,7 @@ class BacktestEngine:
             initial_capital=self.initial_capital,
             margin_rate=self.margin_rate,
             commission_rate=self.commission_rate,
+            execution_price_field=self.execution_price_field,
         )
         
         # Get trading calendar

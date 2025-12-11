@@ -35,11 +35,13 @@ class Account:
         self,
         initial_capital: float,
         margin_rate: float = 0.12,
-        commission_rate: float = 0.00023  # 0.023% per trade
+        commission_rate: float = 0.00023,  # 0.023% per trade
+        execution_price_field: str = "open",  # Price field for trade execution
     ):
         self.initial_capital = initial_capital
         self.margin_rate = margin_rate
         self.commission_rate = commission_rate
+        self.execution_price_field = execution_price_field
         
         self.cash = initial_capital
         self.realized_pnl = 0.0
@@ -167,9 +169,9 @@ class Account:
                     logger.warning(f"Contract not found: {ts_code}")
                     continue
                 
-                price = snapshot.get_futures_price(ts_code, 'settle')
+                price = snapshot.get_futures_price(ts_code, self.execution_price_field)
                 if price is None:
-                    logger.warning(f"No price for {ts_code} on {trade_date}")
+                    logger.warning(f"No {self.execution_price_field} price for {ts_code} on {trade_date}")
                     continue
                 
                 commission = self._execute_trade(contract, delta, price, trade_date, reason)
@@ -245,7 +247,7 @@ class Account:
         if position is None:
             return 0.0
         
-        price = snapshot.get_futures_price(ts_code, 'settle')
+        price = snapshot.get_futures_price(ts_code, self.execution_price_field)
         if price is None:
             price = position.last_settle
         

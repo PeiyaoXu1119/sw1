@@ -75,6 +75,10 @@ class BacktestConfig:
     benchmark_name: str = "CSI 500 Index"
     risk_free_rate: float = 0.02  # Annual risk-free rate
     trading_days_per_year: int = TRADING_DAYS_PER_YEAR
+    
+    # Price field settings (avoid lookahead bias)
+    signal_price_field: str = "open"      # Price for signal calculation: open, pre_settle, close
+    execution_price_field: str = "open"   # Price for trade execution: open, close
 
 
 @dataclass

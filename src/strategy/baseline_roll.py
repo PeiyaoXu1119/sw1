@@ -29,6 +29,7 @@ class BaselineRollStrategy(Strategy):
         contract_selection: Literal['nearby', 'next_nearby', 'volume', 'oi'] = 'nearby',
         target_leverage: float = 1.0,
         min_roll_days: int = 5,  # Minimum days to expiry for new contract
+        signal_price_field: str = "open",  # Price field for signal calculation
     ):
         """
         Args:
@@ -41,8 +42,9 @@ class BaselineRollStrategy(Strategy):
                 - 'oi': Highest open interest
             target_leverage: Target notional / equity ratio
             min_roll_days: Minimum days to expiry for new contract selection
+            signal_price_field: Price field for calculating target volume
         """
-        super().__init__(contract_chain)
+        super().__init__(contract_chain, signal_price_field)
         self.roll_days_before_expiry = roll_days_before_expiry
         self.contract_selection = contract_selection
         self.target_leverage = target_leverage
@@ -173,7 +175,7 @@ class BaselineRollStrategy(Strategy):
         
         Volume = (equity * leverage) / (price * multiplier)
         """
-        price = snapshot.get_futures_price(contract.ts_code, 'settle')
+        price = snapshot.get_futures_price(contract.ts_code, self.signal_price_field)
         if price is None or price <= 0:
             return 0
         
