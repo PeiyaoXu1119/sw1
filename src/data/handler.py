@@ -156,14 +156,19 @@ class DataHandler:
             if ts_code not in contracts:
                 continue
             
+            # Use close as fallback for settle when settle is None or 0
+            close_price = row["close"] or 0.0
+            settle_price = row["settle"] if row["settle"] else close_price
+            pre_settle_price = row["pre_settle"] if row["pre_settle"] else close_price
+            
             bar = FuturesDailyBar(
                 trade_date=row["trade_date"],
                 open=row["open"] or 0.0,
                 high=row["high"] or 0.0,
                 low=row["low"] or 0.0,
-                close=row["close"] or 0.0,
-                settle=row["settle"] or 0.0,
-                pre_settle=row["pre_settle"] or 0.0,
+                close=close_price,
+                settle=settle_price,
+                pre_settle=pre_settle_price,
                 volume=row["volume"] or 0.0,
                 amount=row["amount"] or 0.0,
                 open_interest=row["open_interest"] or 0.0,

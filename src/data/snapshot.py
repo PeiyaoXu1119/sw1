@@ -51,13 +51,20 @@ class MarketSnapshot:
         Args:
             ts_code: Contract code
             relative: If True, return (F - S) / S; else return F - S
-        Returns: Basis value or None if contract not found.
+        Returns: Basis value or None if contract not found or price invalid.
         """
+        # Try settle price first, then close as fallback
         futures_price = self.get_futures_price(ts_code, 'settle')
-        if futures_price is None:
+        if futures_price is None or futures_price <= 0:
+            futures_price = self.get_futures_price(ts_code, 'close')
+        
+        # Still invalid, return None
+        if futures_price is None or futures_price <= 0:
             return None
         
         spot_price = self.index_bar.close
+        if spot_price <= 0:
+            return None
         
         if relative:
             return (futures_price - spot_price) / spot_price

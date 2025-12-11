@@ -18,6 +18,9 @@ use_dynamic_margin = true   # Use historical margin rates from data
 strategy_type = "baseline"  # Options: "baseline", "basis_timing"
 strategy_name = "Baseline Roll Strategy"
 
+# strategy_type = "basis_timing"
+# strategy_name = "Basis Timing Strategy"
+
 # Roll parameters
 roll_days_before_expiry = 2
 contract_selection = "nearby"  # Options: "nearby", "volume", "oi"
@@ -43,9 +46,9 @@ trading_days_per_year = 242  # China market
 
 [output]
 # Output settings
-output_path = "/root/sw1/output"
+output_path = "./output"
 save_plots = true
 save_trade_log = true
 save_nav_series = true
-plot_dpi = 150
+plot_dpi = 300
 figure_format = "png"

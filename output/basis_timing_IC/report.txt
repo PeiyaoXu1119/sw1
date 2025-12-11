@@ -1,0 +1,32 @@
+============================================================
+PERFORMANCE REPORT: Basis Timing Strategy
+============================================================
+Period: 2015-05-04 to 2025-11-28
+
+Strategy Performance:
+----------------------------------------
+  Total Return:          111.98%
+  Annualized Return:     7.33%
+  Annualized Volatility: 17.10%
+  Sharpe Ratio:          0.31
+  Max Drawdown:          -34.21%
+  Calmar Ratio:          0.21
+  Win Rate:              13.92%
+
+Benchmark Performance (CSI 500 Index):
+----------------------------------------
+  Annualized Return:     -1.78%
+  Annualized Volatility: 24.92%
+
+Relative Performance:
+----------------------------------------
+  Alpha (Excess Return): 9.11%
+  Tracking Error:        20.28%
+  Information Ratio:     0.45
+
+Trading Statistics:
+----------------------------------------
+  Trading Days:          2572
+  Total Trades:          156
+
+============================================================
