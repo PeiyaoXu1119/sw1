@@ -91,7 +91,7 @@ class BaselineRollStrategy(Strategy):
                 logger.warning(f"Current contract not found: {current_ts_code}")
                 return {}
             
-            if self._should_roll(current_contract, trade_date):
+            if self._should_roll(current_contract, snapshot):
                 # Roll to new contract
                 new_contract = self._select_roll_target(trade_date, current_contract)
                 if new_contract is None:
@@ -114,8 +114,9 @@ class BaselineRollStrategy(Strategy):
         
         return target_positions
     
-    def _should_roll(self, contract: FuturesContract, trade_date: date) -> bool:
+    def _should_roll(self, contract: FuturesContract, snapshot: SignalSnapshot) -> bool:
         """Check if current contract should be rolled."""
+        trade_date = snapshot.trade_date
         days_to_expiry = contract.days_to_expiry(trade_date)
         return days_to_expiry <= self.roll_days_before_expiry
     

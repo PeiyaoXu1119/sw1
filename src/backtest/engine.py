@@ -50,6 +50,7 @@ class BacktestEngine:
         trading_days_per_year: int = TRADING_DAYS_PER_YEAR,
         signal_price_field: str = "open",
         execution_price_field: str = "open",
+        use_dynamic_margin: bool = False,
     ):
         self.data_handler = data_handler
         self.strategy = strategy
@@ -62,6 +63,7 @@ class BacktestEngine:
         self.trading_days_per_year = trading_days_per_year
         self.signal_price_field = signal_price_field
         self.execution_price_field = execution_price_field
+        self.use_dynamic_margin = use_dynamic_margin
         
         self.account: Optional[Account] = None
         self.analyzer: Optional[Analyzer] = None
@@ -158,6 +160,12 @@ class BacktestEngine:
         ==================================
         """
         # ============ Open (09:30) ============
+        
+        # Update margin rate if dynamic
+        if self.use_dynamic_margin:
+            # Get today's margin rate, fallback to default self.margin_rate
+            today_margin = self.data_handler.get_margin_rate(trade_date, default=self.margin_rate)
+            self.account.margin_rate = today_margin
         
         # Get RESTRICTED signal snapshot - strategy can ONLY see this
         signal_snapshot = self.data_handler.get_signal_snapshot(trade_date)

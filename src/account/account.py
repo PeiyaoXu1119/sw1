@@ -209,6 +209,14 @@ class Account:
         # Update or create position
         if ts_code in self._positions:
             position = self._positions[ts_code]
+            
+            # Calculate PnL from last_settle to current price and settle it to cash
+            # This ensures the existing position is marked to the current execution price
+            # before adding/reducing volume.
+            # PnL = (price - last_settle) * volume * multiplier
+            price_move_pnl = (price - position.last_settle) * position.volume * position.multiplier
+            self.cash += price_move_pnl
+            
             realized_pnl = position.update_volume(volume, price)
             self.realized_pnl += realized_pnl
             

@@ -64,12 +64,13 @@ class TestMarketSnapshot:
     
     def test_get_basis(self, sample_snapshot):
         # Basis = (F - S) / S = (5020 - 5050) / 5050
-        basis = sample_snapshot.get_basis("IC2401.CFX", relative=True)
+        # Explicitly use 'settle' to match the calculation in comment
+        basis = sample_snapshot.get_basis("IC2401.CFX", relative=True, price_field='settle')
         expected = (5020.0 - 5050.0) / 5050.0
         assert abs(basis - expected) < 1e-6
     
     def test_get_basis_absolute(self, sample_snapshot):
-        basis = sample_snapshot.get_basis("IC2401.CFX", relative=False)
+        basis = sample_snapshot.get_basis("IC2401.CFX", relative=False, price_field='settle')
         assert basis == 5020.0 - 5050.0
     
     def test_get_available_contracts(self, sample_snapshot):

@@ -10,6 +10,7 @@ from loguru import logger
 from src.config import Config, load_config
 from src.data.handler import DataHandler
 from src.strategy.baseline_roll import BaselineRollStrategy
+from src.strategy.smart_roll import SmartRollStrategy
 from src.strategy.basis_timing import BasisTimingStrategy
 from src.backtest.engine import BacktestEngine
 
@@ -45,6 +46,16 @@ def run_backtest_from_config(config: Config):
             min_roll_days=cfg.strategy.min_roll_days,
             signal_price_field=cfg.backtest.signal_price_field,
         )
+    elif cfg.strategy.strategy_type == "smart_roll":
+        strategy = SmartRollStrategy(
+            contract_chain=data_handler.contract_chain,
+            roll_days_before_expiry=cfg.strategy.roll_days_before_expiry,
+            contract_selection=cfg.strategy.contract_selection,
+            target_leverage=cfg.strategy.target_leverage,
+            min_roll_days=cfg.strategy.min_roll_days,
+            signal_price_field=cfg.backtest.signal_price_field,
+            roll_criteria=cfg.strategy.roll_criteria,
+        )
     elif cfg.strategy.strategy_type == "basis_timing":
         strategy = BasisTimingStrategy(
             contract_chain=data_handler.contract_chain,
@@ -66,7 +77,6 @@ def run_backtest_from_config(config: Config):
     
     # Determine margin rate
     margin_rate = cfg.account.default_margin_rate
-    # TODO: implement dynamic margin from data_handler if use_dynamic_margin is True
     
     # Create backtest engine
     engine = BacktestEngine(
@@ -81,6 +91,7 @@ def run_backtest_from_config(config: Config):
         trading_days_per_year=cfg.backtest.trading_days_per_year,
         signal_price_field=cfg.backtest.signal_price_field,
         execution_price_field=cfg.backtest.execution_price_field,
+        use_dynamic_margin=cfg.account.use_dynamic_margin,
     )
     
     # Parse dates
